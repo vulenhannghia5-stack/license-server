@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>License Manager</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        max-width: 900px;
+        margin: auto;
+        padding: 20px;
+        background: #f9f9f9;
+    }
+    h2 {
+        text-align: center;
+        color: #333;
+    }
+    .form-control {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    input {
+        padding: 8px;
+        font-size: 14px;
+        flex: 1;
+    }
+    button {
+        padding: 8px 12px;
+        cursor: pointer;
+        border: none;
+        color: #fff;
+        background: #007bff;
+        font-size: 14px;
+        border-radius: 4px;
+    }
+    button.delete {
+        background: red;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+        background: #fff;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+    }
+    th {
+        background: #f4f4f4;
+    }
+</style>
+</head>
+<body>
+<h2>Quản lý License Bot</h2>
+
+<div class="form-control">
+    <input type="text" id="name" placeholder="Tên người dùng">
+    <input type="text" id="expires" placeholder="YYYY-MM-DDTHH:mm:ssZ hoặc never">
+    <button id="addBtn">Thêm / Gia hạn</button>
+</div>
+
+<table id="licenseTable">
+    <thead>
+        <tr>
+            <th>Tên</th>
+            <th>Hạn sử dụng</th>
+            <th>Hành động</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+const API_BASE = ""; // Gọi API cùng domain Render
+
+async function loadLicenses() {
+    try {
+        const res = await fetch(`${API_BASE}/api/list`);
+        const data = await res.json();
+        const tbody = document.querySelector("#licenseTable tbody");
+        tbody.innerHTML = "";
+        data.forEach(l => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${l.name}</td>
+                <td>${l.expiresAt}</td>
+                <td>
+                    <button class="delete" onclick="deleteLicense('${l.name}')">Xóa</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (err) {
+        alert("❌ Lỗi tải danh sách license");
+    }
+}
+
+async function addLicense() {
+    const name = document.getElementById("name").value.trim();
+    const expiresAt = document.getElementById("expires").value.trim();
+    if (!name || !expiresAt) return alert("Vui lòng nhập đầy đủ thông tin");
+
+    try {
+        const res = await fetch(`${API_BASE}/api/add`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, expiresAt })
+        });
+        const data = await res.json();
+        alert(data.message || "Thêm/gia hạn thành công");
+        document.getElementById("name").value = "";
+        document.getElementById("expires").value = "";
+        loadLicenses();
+    } catch (err) {
+        alert("❌ Lỗi kết nối API");
+    }
+}
+
+async function deleteLicense(name) {
+    if (!confirm(`Xóa license của ${name}?`)) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/delete`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name })
+        });
+        const data = await res.json();
+        alert(data.message || "Đã xóa license");
+        loadLicenses();
+    } catch (err) {
+        alert("❌ Lỗi kết nối API");
+    }
+}
+
+document.getElementById("addBtn").addEventListener("click", addLicense);
+
+loadLicenses();
+</script>
+</body>
+</html>
